@@ -6,9 +6,9 @@
 // Maintainer: 
 // Created: mer jun 17 17:22:01 2009 (+0200)
 // Version: 
-// Last-Updated: sam nov 21 16:32:08 2009 (+0100)
+// Last-Updated: lun. oct. 23 14:18:45 2017 (+0200)
 //           By: stax
-//     Update #: 257
+//     Update #: 269
 // URL: 
 // Keywords: 
 // Compatibility: 
@@ -91,9 +91,9 @@ bool JackEngine::addMixer(VolumeMeter *vm)
     if (!addAudioInput(id + "_1") || !addAudioInput(id + "_2"))
       return false;
   }
-  _mutex.lock();
+  //_mutex.lock();
   _mixers.append(vm);
-  _mutex.unlock();
+  //_mutex.unlock();
   return true;
 }
 void JackEngine::removeMixer(VolumeMeter *vm)
@@ -103,9 +103,17 @@ void JackEngine::removeMixer(VolumeMeter *vm)
     removeAudioInput(id + "_1");
     removeAudioInput(id + "_2");
   }
-  _mutex.lock();
+  //_mutex.lock();
   _mixers.removeAt(_mixers.indexOf(vm));
-  _mutex.unlock();
+  //_mutex.unlock();
+}
+void JackEngine::refreshVu()
+{
+  if (_client) {
+    for (int i=0; i < _mixers.count(); i++)
+      _mixers.at(i)->refresh();
+    _master.refresh();    
+  }
 }
 
 
@@ -120,7 +128,7 @@ void JackEngine::audio_process(jack_nframes_t nframes)
   memset(out1, 0, sizeof(sample_t) * nframes);
   memset(out2, 0, sizeof(sample_t) * nframes);
 
-  _mutex.lock();
+  //_mutex.lock();
   if (_mixers.count()) {
     for (int i=0; i < _mixers.count(); i++) {
       QString id=_mixers.at(i)->getID();
@@ -135,7 +143,7 @@ void JackEngine::audio_process(jack_nframes_t nframes)
       }
     }
   }
-  _mutex.unlock();
+  //_mutex.unlock();
   _master.processBuffers(out1, out2, nframes);
 }
 

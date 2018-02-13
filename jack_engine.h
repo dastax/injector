@@ -6,9 +6,9 @@
  * Maintainer: 
  * Created: mer jun 17 17:22:36 2009 (+0200)
  * Version: 
- * Last-Updated: sam nov 21 16:07:59 2009 (+0100)
+ * Last-Updated: lun. oct. 23 14:11:29 2017 (+0200)
  *           By: stax
- *     Update #: 153
+ *     Update #: 155
  * URL: 
  * Keywords: 
  * Compatibility: 
@@ -72,9 +72,11 @@ public:
 
   bool addMixer(VolumeMeter *vm);
   void removeMixer(VolumeMeter *vm);
-
+  
   bool initEngine(QString name);
 
+public slots:
+  void refreshVu();
 };
 
 

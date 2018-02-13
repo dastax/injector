@@ -6,9 +6,9 @@
  * Maintainer: 
  * Created: ven nov 20 23:05:39 2009 (+0100)
  * Version: 
- * Last-Updated: ven. déc. 11 23:01:55 2009 (+0100)
+ * Last-Updated: lun. oct. 30 23:34:26 2017 (+0100)
  *           By: stax
- *     Update #: 13
+ *     Update #: 25
  * URL: 
  * Keywords: 
  * Compatibility: 
@@ -53,6 +53,7 @@ class Injector : public QWidget
 {
   Q_OBJECT
 private:
+  
   JackEngine _jack;
   QString _clientName;
   QString _confFile;
@@ -75,7 +76,8 @@ private:
   MidiLearnerDlg _midiLearner;
 
   QTimer _vuTimer;
-
+  int _timerID;
+  
   void setUpGui();
 
   void closeEvent(QCloseEvent*);
@@ -83,11 +85,12 @@ private:
   bool loadConf();
   bool saveConf();
 
-  void paintEvent(QPaintEvent *);
+  void timerEvent(QTimerEvent *event);
 
 
 private slots:
   void jackCtrlClicked();
+  void jackStopped();
   void addMixerClicked();
   void removeMixerClicked();
   void handleMidiEvent(struct MidiEvent);

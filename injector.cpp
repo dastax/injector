@@ -6,9 +6,9 @@
 // Maintainer: 
 // Created: ven nov 20 23:05:17 2009 (+0100)
 // Version: 
-// Last-Updated: sam. janv. 30 01:08:25 2016 (+0100)
+// Last-Updated: lun. oct. 30 23:53:56 2017 (+0100)
 //           By: stax
-//     Update #: 125
+//     Update #: 140
 // URL: 
 // Keywords: 
 // Compatibility: 
@@ -47,8 +47,9 @@
 #include <math.h>
 #include "injector.h"
 
+
 Injector::Injector(QString clientName) : _midiLearner(this)
-{
+{  
   _menu=NULL;
   if (!clientName.isEmpty()) {
     _clientName=clientName;
@@ -65,18 +66,18 @@ Injector::Injector(QString clientName) : _midiLearner(this)
 
   loadConf();
 }
-Injector::~Injector()
-{
+
+Injector::~Injector(){
 }
+
 void Injector::closeEvent(QCloseEvent*)
 {
-  _vuTimer.stop();
+  //_vuTimer.stop();
   saveConf();
   _jack.closeClient();
   //qDebug()<<"closing";
 }
-void Injector::setUpGui()
-{
+void Injector::setUpGui() {
   setWindowTitle(QString("[%1] Injector").arg(_clientName));
   setWindowIcon(QIcon(QPixmap(":/logo")));
 
@@ -134,25 +135,23 @@ void Injector::setUpGui()
 	  this, SLOT(addMixerClicked()));
   connect(&_removeMixer, SIGNAL(clicked()),
 	  this, SLOT(removeMixerClicked()));
+  connect(&_jack, SIGNAL(clientStopped()),
+	  this, SLOT(jackStopped()));
   connect(&_jack, SIGNAL(receivedMidiEvent(struct MidiEvent)),
 	  this, SLOT(handleMidiEvent(struct MidiEvent)), Qt::QueuedConnection);
   connect(&_jack, SIGNAL(receivedMidiEvent(struct MidiEvent)),
 	  &_midiIn, SLOT(midiIn()), Qt::QueuedConnection);
-  connect(&_vuTimer, SIGNAL(timeout()), &_jack._master, SLOT(refresh()));
   connect(&_trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
 	  this, SLOT(trayIconActivated(QSystemTrayIcon::ActivationReason)));
   connect(&_midiIn, SIGNAL(inputChannelChanged(int)),
 	  &_jack, SLOT(setInputChannel(int)));
-  _vuTimer.setInterval(50);
-
-
 }
-void Injector::paintEvent(QPaintEvent *)
-{
-  QStyleOption opt;
-  opt.init(this);
-  QPainter p(this);
-  style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
+
+void Injector::timerEvent(QTimerEvent *event) {
+  if (event->timerId() == _timerID) {
+    _jack.refreshVu();
+  }
+  QWidget::timerEvent(event);
 }
 
 void Injector::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
@@ -179,21 +178,23 @@ void Injector::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
 
   }
 }
+void Injector::jackStopped() {
+  _jackClientActivation.setText(tr("Start"));
+  killTimer(_timerID);
+}
 
 void Injector::jackCtrlClicked()
 {
 
   if (_jack.isActive()) {
     _jack.closeClient();
-    _jackClientActivation.setText(tr("Start"));
-    _vuTimer.stop();
   }
   else {
     if (_jack.initEngine(_clientName)) {
       _jackClientActivation.setText(tr("Stop"));
-      _vuTimer.start();
-      //int sr=_jack.getSamplerate();
-
+      int refresh=float(_jack.getBlockSize()) / _jack.getSamplerate() * 1000;
+      qWarning() << "starting timer, suggested refresh timùe is "<<refresh;
+      _timerID=startTimer(refresh > 50 ? refresh : 50);
     }
     else
       QMessageBox::warning(this, tr("Error"), 
@@ -215,7 +216,7 @@ void Injector::addMixerClicked()
       return;
     }
     //vm->setAutoFillBackground(true);
-    connect(&_vuTimer, SIGNAL(timeout()), vm, SLOT(refresh()));
+    //connect(&_vuTimer, SIGNAL(timeout()), vm, SLOT(refresh()));
     _mixerGrid.setColumnCount(_mixerGrid.columnCount() + 1);
     _mixerGrid.setCellWidget(0, _mixerGrid.columnCount() - 1, vm);
   }
@@ -355,7 +356,6 @@ bool Injector::loadConf()
       }
       else {
 	int index=mixer.attribute("index").toInt();
-	connect(&_vuTimer, SIGNAL(timeout()), vm, SLOT(refresh()));
 	_mixerGrid.setCellWidget(0, index, vm);
       }
     }
